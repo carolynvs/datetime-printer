@@ -1,8 +1,7 @@
-package pretty
+package printer
 
 import (
 	"math"
-	"sort"
 	"time"
 
 	humanize "github.com/dustin/go-humanize"
@@ -14,12 +13,11 @@ var Now = time.Now
 const defaultDateFormat = "2006-01-02"
 
 type Time struct {
-	value          time.Time
-	dateFormat     string
-	timeMagnitudes func() []humanize.RelTimeMagnitude
+	value      time.Time
+	dateFormat string
 }
 
-func NewTime(value time.Time) Time {
+func New(value time.Time) Time {
 	return Time{
 		value:      value,
 		dateFormat: defaultDateFormat,
@@ -37,29 +35,12 @@ var prettyFormats = []humanize.RelTimeMagnitude{
 	{math.MaxInt64, "", 1},
 }
 
-func (t Time) DefaultDateFormat() string {
+func (t *Time) DefaultDateFormat() string {
 	return defaultDateFormat
 }
 
-func (t Time) SetDateFormat(format string) {
+func (t *Time) SetDateFormat(format string) {
 	t.dateFormat = format
-}
-
-func (t Time) DefaultTimeMagnitudes() []humanize.RelTimeMagnitude {
-	return []humanize.RelTimeMagnitude{
-		{humanize.Week, t.dateFormat, humanize.Day},
-	}
-}
-
-func (t Time) SetTimeMagnitudes(f func() []humanize.RelTimeMagnitude) {
-	t.timeMagnitudes = f
-}
-
-func (t Time) TimeMagnitudes() []humanize.RelTimeMagnitude {
-	if t.timeMagnitudes != nil {
-		return t.timeMagnitudes()
-	}
-	return t.DefaultTimeMagnitudes()
 }
 
 func (t Time) String() string {
@@ -69,24 +50,5 @@ func (t Time) String() string {
 		return relativeResult
 	}
 
-	return t.FormatTimeByMagnitude(now)
-}
-
-func (t Time) FormatTimeByMagnitude(relativeTo time.Time) string {
-	magnitudes := t.TimeMagnitudes()
-	diff := relativeTo.Sub(t.value)
-
-	if t.value.After(relativeTo) {
-		diff = t.value.Sub(relativeTo)
-	}
-
-	n := sort.Search(len(magnitudes), func(i int) bool {
-		return magnitudes[i].D > diff
-	})
-
-	if n >= len(magnitudes) {
-		n = len(magnitudes) - 1
-	}
-	mag := magnitudes[n]
-	return t.value.Format(mag.Format)
+	return t.value.Format(t.dateFormat)
 }
