@@ -24,16 +24,16 @@ func TestTime_String(t *testing.T) {
 		{name: "now", raw: "Fri May 10 15:04:05 CST 2019", want: "now"},
 	}
 
+	p := printer.DateTimePrinter{}
 	now, _ := time.Parse(magicGoTime, "Fri May 10 15:04:05 CST 2019")
-	printer.Now = func() time.Time { return now }
+	p.Now = func() time.Time { return now }
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			parsedTime, err := time.Parse(magicGoTime, tc.raw)
 			require.NoError(t, err)
 
-			p := printer.New(parsedTime)
-			got := p.String()
+			got := p.Format(parsedTime)
 			assert.Equal(t, tc.want, got)
 		})
 	}
@@ -43,10 +43,31 @@ func TestTime_SetDateFormat(t *testing.T) {
 	parsedTime, err := time.Parse(magicGoTime, "Thu May 9 15:04:05 CST 2019")
 	require.NoError(t, err)
 
-	p := printer.New(parsedTime)
-	p.SetDateFormat("2006/1/2")
+	p := printer.DateTimePrinter{}
+	p.DateFormat = "2006/1/2"
 
-	got := p.String()
+	got := p.Format(parsedTime)
 	want := "2019/5/9"
 	assert.Equal(t, want, got)
+}
+
+func TestReadme(t *testing.T) {
+	now := time.Now()
+
+	p := printer.DateTimePrinter{}
+
+	println(p.Format(now))
+	// "now"
+
+	time.Sleep(2 * time.Second)
+	println(p.Format(now))
+	// "2 seconds ago"
+
+	yearAgo := now.AddDate(-1, 0, 0)
+	println(p.Format(yearAgo))
+	// "2018-05-10"
+
+	p.DateFormat = "2006/01/02"
+	println(p.Format(yearAgo))
+	// "2018/05/10"
 }

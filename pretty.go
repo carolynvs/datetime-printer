@@ -7,21 +7,19 @@ import (
 	humanize "github.com/dustin/go-humanize"
 )
 
-// Now is an overridable Now that you can swap for testing
-var Now = time.Now
-
 const defaultDateFormat = "2006-01-02"
 
-type Time struct {
-	value      time.Time
-	dateFormat string
-}
+// DateTimePrinter uses go-humanize to print just the time portion of recent
+// timestamps (within the last day) and for anything past a day, only prints the
+// date portion of the timestamp.
+type DateTimePrinter struct {
+	// DateFormat to use for printing timestamps beyond a day old.
+	DateFormat string
 
-func New(value time.Time) Time {
-	return Time{
-		value:      value,
-		dateFormat: defaultDateFormat,
-	}
+	// Now allows you use a fixed point in time when printing.
+	// This is useful when printing tables of data, so all the relative times
+	// are in relation to the same "now", and when unit testing.
+	Now func() time.Time
 }
 
 var prettyFormats = []humanize.RelTimeMagnitude{
@@ -35,24 +33,30 @@ var prettyFormats = []humanize.RelTimeMagnitude{
 	{math.MaxInt64, "", 1},
 }
 
-func (t *Time) DefaultDateFormat() string {
+// DateFormatOrDefault gets the format to apply to dates.
+func (t DateTimePrinter) DateFormatOrDefault() string {
+	if t.DateFormat != "" {
+		return t.DateFormat
+	}
+
 	return defaultDateFormat
 }
 
-func (t *Time) SetDateFormat(format string) {
-	t.dateFormat = format
+// NowOrDefault gets the current time, using the overridden Now(), or time.Now().
+func (t DateTimePrinter) NowOrDefault() time.Time {
+	if t.Now != nil {
+		return t.Now()
+	}
+
+	return time.Now()
 }
 
-func (t Time) String() string {
-	now := Now()
-	relativeResult := humanize.CustomRelTime(t.value, now, "ago", "from now", prettyFormats)
+// Format the specified timestamp relative to now.
+func (t DateTimePrinter) Format(value time.Time) string {
+	relativeResult := humanize.CustomRelTime(value, t.NowOrDefault(), "ago", "from now", prettyFormats)
 	if relativeResult != "" {
 		return relativeResult
 	}
 
-	return t.value.Format(t.dateFormat)
-}
-
-func (t Time) Value() time.Time {
-	return t.value
+	return value.Format(t.DateFormatOrDefault())
 }
