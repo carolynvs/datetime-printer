@@ -52,3 +52,7 @@ func (t Time) String() string {
 
 	return t.value.Format(t.dateFormat)
 }
+
+func (t Time) Value() time.Time {
+	return t.value
+}
